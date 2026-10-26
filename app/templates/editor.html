@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Edit subtitles{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Edit subtitles — {{ job.display_title }}</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.results', public_id=job.public_id) }}">Back to results</a>
+</div>
+<div class="row g-3" id="editor" data-segments-url="{{ url_for('main.api_segments', public_id=job.public_id) }}"
+     data-transform-url="{{ url_for('main.api_transform', public_id=job.public_id) }}"
+     data-duration="{{ job.duration_sec }}">
+  <div class="col-lg-5">
+    <div class="card sticky-top" style="top: 1rem;"><div class="card-body">
+      <video id="video" class="w-100 rounded bg-dark" controls preload="metadata"
+             src="{{ url_for('main.video', public_id=job.public_id) }}"></video>
+      <div class="caption-box mt-2" id="caption">&nbsp;</div>
+      <div class="small text-muted mt-1">Preview uses your <em>current edits</em>, even before saving.</div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-primary" id="save-btn">Save changes</button>
+        <button class="btn btn-outline-secondary" id="add-btn">Add subtitle at current time</button>
+      </div>
+      <div class="mt-3 d-flex flex-wrap gap-2">
+        <a class="btn btn-success btn-sm" href="{{ url_for('main.download', public_id=job.public_id, kind='srt') }}">Download SRT</a>
+        <a class="btn btn-success btn-sm" href="{{ url_for('main.download', public_id=job.public_id, kind='vtt') }}">Download VTT</a>
+        <span class="small text-muted align-self-center">Downloads contain the <strong>saved</strong> version.</span>
+      </div>
+      <div id="messages" class="mt-3"></div>
+    </div></div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <p class="small text-muted">Times accept <code>HH:MM:SS.mmm</code>, <code>MM:SS.mmm</code> or plain seconds. Subtitles must not overlap.
+        “Split” cuts at the video's current time (or the middle if the playhead is outside the subtitle).</p>
+      <div id="rows"></div>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/subtitle_editor.js') }}"></script>{% endblock %}

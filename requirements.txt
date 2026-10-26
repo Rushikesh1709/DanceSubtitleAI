@@ -1,0 +1,12 @@
+# Tested combination for Python 3.11 on Windows 10/11 (64-bit).
+# MediaPipe 0.10.14 still ships the classic "solutions" API with the pose, hand
+# and face models bundled inside the package, so NO separate model download is needed.
+# MediaPipe 0.10.14 requires numpy < 2, so numpy is pinned to 1.26.4.
+Flask==3.0.3
+SQLAlchemy==2.0.35
+python-dotenv==1.0.1
+numpy==1.26.4
+pandas==2.2.2
+opencv-contrib-python==4.10.0.84
+mediapipe==0.10.14
+pytest==8.3.3

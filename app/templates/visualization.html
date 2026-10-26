@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Visualisation{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Pose &amp; movement visualisation — {{ job.display_title }}</h1>
+  <a class="btn btn-outline-secondary" href="{{ url_for('main.results', public_id=job.public_id) }}">Back to results</a>
+</div>
+<div class="row g-3" id="viz" data-analysis-url="{{ url_for('main.analysis_json', public_id=job.public_id) }}"
+     data-segments-url="{{ url_for('main.api_segments', public_id=job.public_id) }}">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <div class="video-wrap">
+        <video id="video" class="w-100 rounded bg-dark" controls preload="metadata" src="{{ url_for('main.video', public_id=job.public_id) }}"></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <div class="d-flex flex-wrap gap-3 mt-2">
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="show-pose" checked><label class="form-check-label" for="show-pose">Skeleton</label></div>
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="show-hands" checked><label class="form-check-label" for="show-hands">Hand landmarks</label></div>
+      </div>
+      <div class="caption-box mt-2" id="caption">&nbsp;</div>
+      <p class="small text-muted mb-0">The skeleton is drawn from the stored landmarks of the nearest analysed frame (analysis is sampled, so it updates a few times per second).
+        The original video is untouched. An annotated <em>video file</em> export is not implemented.</p>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Movement intensity &amp; subtitle boundaries</h2>
+      <canvas id="chart" class="w-100" height="170"></canvas>
+      <div class="small text-muted">Blue line: movement speed (torso lengths per second). Orange ticks: subtitle boundaries. Grey bands: dancer not detected. Red line: current time.</div>
+    </div></div>
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Detected posture transitions</h2>
+      <div style="max-height:260px; overflow:auto;"><table class="table table-sm" id="events"><tbody></tbody></table></div>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/visualization.js') }}"></script>{% endblock %}

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Results{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{{ job.display_title }}</h1>
+  <div class="btn-group">
+    <a class="btn btn-primary" href="{{ url_for('main.editor', public_id=job.public_id) }}">Edit subtitles</a>
+    <a class="btn btn-outline-primary" href="{{ url_for('main.visualization', public_id=job.public_id) }}">Pose &amp; movement visualisation</a>
+  </div>
+</div>
+
+{% if summary.preview_note %}<div class="alert alert-warning">{{ summary.preview_note }}</div>{% endif %}
+{% if summary.fps_was_guessed %}<div class="alert alert-warning">The video did not report a frame rate; 25 fps was assumed, so timestamps may be slightly off.</div>{% endif %}
+
+<div class="row g-3" id="results" data-job="{{ job.public_id }}" data-duration="{{ job.duration_sec }}"
+     data-segments-url="{{ url_for('main.api_segments', public_id=job.public_id) }}"
+     data-analysis-url="{{ url_for('main.analysis_json', public_id=job.public_id) }}">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <video id="video" class="w-100 rounded bg-dark" controls preload="metadata" crossorigin="anonymous"
+             src="{{ url_for('main.video', public_id=job.public_id) }}">
+        <track kind="subtitles" srclang="en" label="Generated description" default
+               src="{{ url_for('main.subtitles_track', public_id=job.public_id) }}">
+      </video>
+      <div class="form-check form-switch mt-2">
+        <input class="form-check-input" type="checkbox" id="toggle-subs" checked>
+        <label class="form-check-label" for="toggle-subs">Show subtitles</label>
+      </div>
+      <div class="caption-box mt-2" id="caption" aria-live="polite">&nbsp;</div>
+      <h2 class="h6 mt-3">Subtitle timeline</h2>
+      <div class="timeline" id="timeline"></div>
+      <div class="small text-muted">Click a block to jump to that part of the video.</div>
+    </div></div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Downloads</h2>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-success {{ 'order-first' if settings.output_format == 'srt' }}" href="{{ url_for('main.download', public_id=job.public_id, kind='srt') }}">Download SRT</a>
+        <a class="btn btn-success {{ 'order-first' if settings.output_format == 'vtt' }}" href="{{ url_for('main.download', public_id=job.public_id, kind='vtt') }}">Download VTT</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('main.download', public_id=job.public_id, kind='features') }}">Movement data (CSV)</a>
+      </div>
+      <hr>
+      <h2 class="h6 text-uppercase text-muted">Video with embedded subtitles</h2>
+      {% if ffmpeg.available and ffmpeg.subtitles_filter %}
+        <button class="btn btn-outline-primary" id="export-btn">Create video with embedded subtitles</button>
+        <span class="small text-muted ms-2" id="export-msg">
+          {% if job.export_status == 'running' %}Working…{% elif job.export_status == 'failed' %}Last attempt failed: {{ job.export_error }}{% endif %}
+        </span>
+        <a class="btn btn-success mt-2 {{ '' if job.export_status == 'done' else 'd-none' }}" id="export-dl"
+           href="{{ url_for('main.download', public_id=job.public_id, kind='video') }}">Download subtitled video</a>
+        <div class="form-text">Uses the <em>saved</em> subtitles. The original video is never changed.</div>
+      {% else %}
+        <div class="alert alert-secondary mb-0 small">{{ ffmpeg.message }}</div>
+      {% endif %}
+    </div></div>
+
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Processing summary</h2>
+      <dl class="row mb-0 small">
+        <dt class="col-7">Duration</dt><dd class="col-5">{{ job.duration_sec | fmt_time }}</dd>
+        <dt class="col-7">Resolution</dt><dd class="col-5">{{ job.width }}×{{ job.height }}</dd>
+        <dt class="col-7">Frames analysed</dt><dd class="col-5">{{ summary.sampled_frames }} ({{ summary.sampling_fps }}/s)</dd>
+        <dt class="col-7">Dancer detected in</dt><dd class="col-5">{{ (summary.pose_detection_rate * 100) | round(0) | int }}% of frames</dd>
+        <dt class="col-7">Mean evidence reliability</dt><dd class="col-5">{{ summary.mean_reliability }}</dd>
+        <dt class="col-7">Time with no clear dancer</dt><dd class="col-5">{{ summary.no_pose_seconds }} s</dd>
+        <dt class="col-7">Subtitle segments</dt><dd class="col-5">{{ summary.segments }}</dd>
+        <dt class="col-7">Dance form (chosen)</dt><dd class="col-5">{{ job.dance_form or '—' }}</dd>
+      </dl>
+      <p class="small text-muted mt-2 mb-0">“Reliability” measures how consistent and visible the landmarks were. It is <strong>not</strong> the probability that a subtitle is correct.</p>
+    </div></div>
+  </div>
+
+  <div class="col-12">
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Movement intensity over time</h2>
+      <canvas id="chart" class="w-100" height="140"></canvas>
+    </div></div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Subtitles</h2>
+      <div class="table-responsive" style="max-height: 360px; overflow:auto;">
+        <table class="table table-sm table-hover" id="seg-table">
+          <thead><tr><th>Start</th><th>End</th><th>Description</th><th>Reliability</th></tr></thead><tbody></tbody>
+        </table>
+      </div>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Hand-shape observations</h2>
+      {% if events.get('gesture') %}
+      <ul class="small mb-0">{% for e in events['gesture'] %}<li>{{ e.start_sec | fmt_ts }} – {{ e.end_sec | fmt_ts }}: {{ e.label }}</li>{% endfor %}</ul>
+      {% else %}<p class="small text-muted mb-0">{{ 'No stable hand shape was detected.' if summary.hands_enabled else 'Hand analysis was not enabled for this video.' }}</p>{% endif %}
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Facial-expression estimates</h2>
+      {% if events.get('expression') %}
+      <ul class="small mb-0">{% for e in events['expression'] %}<li>{{ e.start_sec | fmt_ts }} – {{ e.end_sec | fmt_ts }}: {{ e.label }} <span class="text-muted">(estimate)</span></li>{% endfor %}</ul>
+      {% else %}<p class="small text-muted mb-0">{{ 'No clear non-neutral expression was detected.' if summary.face_enabled else 'Expression analysis was not enabled for this video.' }}</p>{% endif %}
+    </div></div>
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Other detected events</h2>
+      <p class="small mb-0">
+        Posture changes: <strong>{{ events.get('movement', [])|length }}</strong> ·
+        Turns: <strong>{{ events.get('turn', [])|length }}</strong> ·
+        Repeated patterns: <strong>{{ events.get('repeated_movement', [])|length }}</strong> ·
+        Not-visible periods: <strong>{{ events.get('no_pose', [])|length }}</strong>
+      </p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/video_player.js') }}"></script>
+<script>
+  const exportBtn = document.getElementById('export-btn');
+  if (exportBtn) {
+    const msg = document.getElementById('export-msg'), dl = document.getElementById('export-dl');
+    async function pollExport() {
+      const d = await (await fetch('{{ url_for("main.export_status", public_id=job.public_id) }}')).json();
+      if (d.status === 'running') { msg.textContent = 'Encoding video with subtitles… this can take several minutes.'; setTimeout(pollExport, 2000); }
+      else if (d.status === 'done') { msg.textContent = 'Done.'; dl.classList.remove('d-none'); exportBtn.disabled = false; }
+      else if (d.status === 'failed') { msg.textContent = 'Failed: ' + d.error; exportBtn.disabled = false; }
+    }
+    exportBtn.addEventListener('click', async () => {
+      exportBtn.disabled = true; msg.textContent = 'Starting…';
+      const r = await fetch('{{ url_for("main.export_video", public_id=job.public_id) }}', {method: 'POST'});
+      const d = await r.json();
+      if (!r.ok) { msg.textContent = d.error; exportBtn.disabled = false; return; }
+      pollExport();
+    });
+    {% if job.export_status == 'running' %}exportBtn.disabled = true; pollExport();{% endif %}
+  }
+</script>
+{% endblock %}

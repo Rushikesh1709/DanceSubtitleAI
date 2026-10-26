@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}History{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Processing history</h1>
+{% if not jobs %}
+  <div class="alert alert-secondary">No videos have been processed yet. <a href="{{ url_for('main.upload') }}">Upload one</a>.</div>
+{% else %}
+<div class="table-responsive">
+<table class="table table-hover align-middle">
+  <thead><tr><th>Title</th><th>File</th><th>Date</th><th>Duration</th><th>Dance form</th><th>Status</th><th>Subtitles</th><th></th></tr></thead>
+  <tbody>
+  {% for j in jobs %}
+    <tr>
+      <td>{{ j.display_title }}</td><td class="small text-break">{{ j.original_filename }}</td>
+      <td class="small">{{ j.created_at | fmt_dt }}</td><td>{{ j.duration_sec | fmt_time }}</td><td>{{ j.dance_form or '—' }}</td>
+      <td>
+        {% if j.status == 'completed' %}<span class="badge text-bg-success">completed</span>
+        {% elif j.status == 'failed' %}<span class="badge text-bg-danger" title="{{ j.error_message }}">failed</span>
+        {% else %}<span class="badge text-bg-primary">{{ j.status }}</span>{% endif %}
+        {% if j.status == 'failed' and j.error_message %}<div class="small text-danger">{{ j.error_message }}</div>{% endif %}
+      </td>
+      <td>
+        {% if j.status == 'completed' %}
+          <a href="{{ url_for('main.download', public_id=j.public_id, kind='srt') }}">SRT</a> ·
+          <a href="{{ url_for('main.download', public_id=j.public_id, kind='vtt') }}">VTT</a>
+        {% else %}—{% endif %}
+      </td>
+      <td class="text-nowrap">
+        {% if j.status == 'completed' %}<a class="btn btn-sm btn-primary" href="{{ url_for('main.results', public_id=j.public_id) }}">Open</a>
+        {% elif j.status in ('queued', 'processing') %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('main.processing', public_id=j.public_id) }}">View</a>{% endif %}
+        {% if j.status != 'processing' %}
+        <form class="d-inline" method="post" action="{{ url_for('main.delete_job', public_id=j.public_id) }}"
+              onsubmit="return confirm('Delete this job, its video and all results?');">
+          <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button></form>
+        {% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
+{% endblock %}

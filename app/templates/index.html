@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero p-4 p-md-5 mb-4 rounded-3">
+  <h1 class="display-6 fw-bold">AI-Based Automatic Subtitle Generation for Indian Classical Dance Videos</h1>
+  <p class="lead mb-3">Upload a dance video. The application detects the dancer's body pose, tracks movement over time and
+    writes <strong>time-synchronised, descriptive subtitles</strong> of what is visibly happening — which you can then edit and download.</p>
+  <a class="btn btn-light btn-lg" href="{{ url_for('main.upload') }}">Upload a video</a>
+  <a class="btn btn-outline-light btn-lg ms-2" href="{{ url_for('main.history') }}">Processing history</a>
+</section>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h5">How it works</h2>
+      <ol class="mb-0">
+        <li>Upload a video (Bharatanatyam is the main use case).</li>
+        <li>Choose the sampling frequency and optional analyses.</li>
+        <li>Wait while pose, hands and movement are analysed (real status is shown).</li>
+        <li>Watch the video with its subtitles and review the timeline.</li>
+        <li>Fix any text or timing in the subtitle editor.</li>
+        <li>Download <code>.srt</code> or <code>.vtt</code> files (or an embedded-subtitle video if FFmpeg is installed).</li>
+      </ol>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100"><div class="card-body">
+      <h2 class="h5">Supported analysis</h2>
+      <ul class="mb-2">
+        <li>Body pose landmarks (MediaPipe Pose) and skeleton visualisation</li>
+        <li>Arm, knee/leg, turning and sideways movement; speed and holds</li>
+        <li>Basic hand <em>shapes</em> (which fingers are extended) &mdash; not full mudra recognition</li>
+        <li>Optional facial-expression <em>estimates</em> (smile, raised eyebrows)</li>
+        <li>SRT / WebVTT export, subtitle editor, history of jobs</li>
+      </ul>
+      <p class="small text-muted mb-0">Supported video formats:
+        {% for f in formats %}<span class="badge text-bg-secondary">{{ f }}</span> {% endfor %}</p>
+    </div></div>
+  </div>
+  <div class="col-12">
+    <div class="card"><div class="card-body">
+      <h2 class="h5">Example of descriptive subtitles <span class="badge text-bg-warning">illustration only</span></h2>
+      <p class="small text-muted">Real subtitles are generated from your own video.</p>
+      <ul class="list-unstyled mb-0 example-list">
+        {% for ts, text in examples %}<li><code>{{ ts }}</code> &nbsp;{{ text }}</li>{% endfor %}
+      </ul>
+    </div></div>
+  </div>
+  <div class="col-12">
+    <div class="alert alert-info mb-0">
+      <strong>Honest by design:</strong> the system describes <em>observable</em> movement. It does not decide the symbolic meaning of a
+      mudra, the story being told, or the dancer's inner emotion (rasa). Uncertain intervals are marked or can be hidden.
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Processing{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Processing: {{ job.display_title }}</h1>
+<div class="row g-3" id="proc" data-status-url="{{ url_for('main.api_status', public_id=job.public_id) }}">
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Video</h2>
+      <dl class="row mb-0">
+        <dt class="col-5">File</dt><dd class="col-7 text-break">{{ job.original_filename }}</dd>
+        <dt class="col-5">Duration</dt><dd class="col-7">{{ job.duration_sec | fmt_time }} min:sec</dd>
+        <dt class="col-5">Resolution</dt><dd class="col-7">{{ job.width }} × {{ job.height }}</dd>
+        <dt class="col-5">Frame rate</dt><dd class="col-7">{{ '%.2f' % job.fps if job.fps else '-' }} fps</dd>
+      </dl>
+    </div></div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <h2 class="h6 text-uppercase text-muted">Status</h2>
+      <p class="mb-1">Stage: <strong id="stage">{{ job.stage }}</strong></p>
+      <p class="text-muted small" id="detail">{{ job.stage_detail }}</p>
+      <div class="progress mb-3" style="height: 1.2rem;">
+        <div class="progress-bar" id="bar" style="width:0%">0 / 0 frames</div>
+      </div>
+      <ul class="list-group">
+        <li class="list-group-item d-flex justify-content-between">Pose detection <span class="badge" id="pose_status"></span></li>
+        <li class="list-group-item d-flex justify-content-between">Gesture (hand) analysis <span class="badge" id="gesture_status"></span></li>
+        <li class="list-group-item d-flex justify-content-between">Facial-expression estimates <span class="badge" id="expression_status"></span></li>
+        <li class="list-group-item d-flex justify-content-between">Subtitle generation <span class="badge" id="subtitle_status"></span></li>
+      </ul>
+      <div class="alert alert-danger mt-3 d-none" id="error"></div>
+      <a class="btn btn-outline-primary mt-3 d-none" id="retry" href="{{ url_for('main.upload') }}">Upload another video</a>
+    </div></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const root = document.getElementById('proc');
+  const badge = {pending: 'text-bg-secondary', running: 'text-bg-primary', done: 'text-bg-success',
+                 skipped: 'text-bg-light border', failed: 'text-bg-danger'};
+  async function poll() {
+    let d;
+    try { d = await (await fetch(root.dataset.statusUrl)).json(); } catch (e) { setTimeout(poll, 2000); return; }
+    document.getElementById('stage').textContent = d.stage.replace(/_/g, ' ');
+    document.getElementById('detail').textContent = d.stage_detail || '';
+    const bar = document.getElementById('bar');
+    const pct = d.frames_total ? Math.min(100, Math.round(100 * d.frames_done / d.frames_total)) : 0;
+    bar.style.width = pct + '%';
+    bar.textContent = d.frames_done + ' of about ' + d.frames_total + ' sampled frames';
+    ['pose_status', 'gesture_status', 'expression_status', 'subtitle_status'].forEach(k => {
+      const el = document.getElementById(k); el.textContent = d[k]; el.className = 'badge ' + (badge[d[k]] || 'text-bg-secondary');
+    });
+    if (d.status === 'completed') { window.location = d.results_url; return; }
+    if (d.status === 'failed') {
+      const e = document.getElementById('error'); e.textContent = d.error || 'Processing failed.'; e.classList.remove('d-none');
+      document.getElementById('retry').classList.remove('d-none'); return;
+    }
+    setTimeout(poll, 1000);
+  }
+  poll();
+</script>
+{% endblock %}

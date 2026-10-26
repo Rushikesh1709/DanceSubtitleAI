@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "note": "Hand SHAPES are measured from landmarks. 'candidate_mudras' are only loose, UNVERIFIED resemblances for convenience; the application never states a symbolic meaning. Edit this file to change wording.",
+  "shapes": {
+    "open_hand_flat":        {"description": "an open hand with the fingers together", "candidate_mudras": []},
+    "open_hand_spread":      {"description": "an open hand with the fingers spread apart", "candidate_mudras": ["Alapadma"]},
+    "flat_hand_thumb_tucked":{"description": "a flat hand with the thumb tucked in", "candidate_mudras": ["Pataka"]},
+    "fist":                  {"description": "a closed fist", "candidate_mudras": ["Mushti"]},
+    "fist_thumb_out":        {"description": "a closed fist with the thumb extended", "candidate_mudras": ["Shikhara"]},
+    "index_extended":        {"description": "an extended index finger with the other fingers curled", "candidate_mudras": ["Suchi"]},
+    "two_fingers_extended":  {"description": "two extended fingers with the others curled", "candidate_mudras": []},
+    "thumb_index_extended":  {"description": "the thumb and index finger extended", "candidate_mudras": []},
+    "three_fingers_extended":{"description": "three extended fingers with the little finger curled", "candidate_mudras": []},
+    "index_pinky_extended":  {"description": "the index and little fingers extended", "candidate_mudras": []}
+  }
+}
